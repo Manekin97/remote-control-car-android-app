@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">IoT_Car_RC</string>
+    <string name="forward_button_text">FORWARD</string>
+    <string name="backward_button_text">BACKWARD</string>
+    <string name="left_button_text">LEFT</string>
+    <string name="right_button_text">RIGHT</string>
+</resources>
