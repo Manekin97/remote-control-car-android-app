@@ -60,6 +60,7 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
         }
 
         protected void onPostExecute(Void result) {
+            super.onPostExecute(result);
             dialog.dismiss();
         }
     }
