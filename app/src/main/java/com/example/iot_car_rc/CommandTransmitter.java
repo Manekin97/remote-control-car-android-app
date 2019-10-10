@@ -1,5 +1,6 @@
 package com.example.iot_car_rc;
 
+import android.os.AsyncTask;
 import android.util.Log;
 
 import java.io.IOException;
@@ -18,6 +19,24 @@ class CommandTransmitter {
     private DatagramSocket socket;
     private InetAddress inetAddress;
 
+    private class SendCommandTask extends AsyncTask<COMMAND, Void, Void> {
+
+        @Override
+        protected Void doInBackground(COMMAND... commands) {
+            ByteBuffer message = ByteBuffer.allocate(1);
+            message.put(commands[0].getCommandCode()).rewind();
+            DatagramPacket packet = new DatagramPacket(message.array(), message.limit(), inetAddress, PORT);
+
+            try {
+                socket.send(packet);
+            } catch (IOException exception) {
+                Log.e(exception.getMessage(), "TRANSMITTER_ERROR:SendCommandTask");
+            }
+
+            return null;
+        }
+    }
+
     static CommandTransmitter getInstance() {
         return INSTANCE == null ? new CommandTransmitter() : INSTANCE;
     }
@@ -26,7 +45,7 @@ class CommandTransmitter {
         try {
             socket = new DatagramSocket();
         } catch (SocketException exception) {
-            Log.e(exception.getMessage(), "TRANSMITTER_ERROR");
+            Log.e(exception.getMessage(), "TRANSMITTER_ERROR:CommandTransmitter");
         }
     }
 
@@ -34,19 +53,11 @@ class CommandTransmitter {
         try {
             this.inetAddress = InetAddress.getByName(address);
         } catch (UnknownHostException exception) {
-            Log.e(exception.getMessage(), "TRANSMITTER_ERROR");
+            Log.e(exception.getMessage(), "TRANSMITTER_ERROR:setInetAddress");
         }
     }
 
     void sendCommand(COMMAND command) {
-        ByteBuffer message = ByteBuffer.allocate(1);
-        message.put(command.getCommandCode()).rewind();
-        DatagramPacket packet = new DatagramPacket(message.array(), message.limit(), this.inetAddress, PORT);
-
-        try {
-            socket.send(packet);
-        } catch (IOException exception) {
-            Log.e(exception.getMessage(), "TRANSMITTER_ERROR");
-        }
+        new SendCommandTask().execute(command);
     }
 }

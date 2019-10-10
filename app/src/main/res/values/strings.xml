@@ -4,4 +4,9 @@
     <string name="backward_button_text">BACKWARD</string>
     <string name="left_button_text">LEFT</string>
     <string name="right_button_text">RIGHT</string>
+    <string name="control_mode_switch_text_on">TURN ON AUTONOMOUS CONTROL</string>
+    <string name="control_mode_switch_text_off">TURN OFF AUTONOMOUS CONTROL</string>
+    <string name="scanning_wifi">Scanning for Wi-Fi network...</string>
+    <string name="connecting_to_wifi">Connecting to Wi-Fi...</string>
+    <string name="obtaining_wifi_ip_address">Obtaining IP Address...</string>
 </resources>
