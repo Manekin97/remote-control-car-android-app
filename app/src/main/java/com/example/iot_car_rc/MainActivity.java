@@ -7,10 +7,8 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.ActivityInfo;
-import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.wifi.WifiConfiguration;
-import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -31,6 +29,7 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
     private final String SSID = "ESP8266-ACCESS-POINT";
     private final String IP_ADDRESS = "192.168.1.1";
     private WiFiStateListener wiFiStateListener;
+    private IntentFilter filters;
 
     private ImageButton forwardButton;
     private ImageButton backwardsButton;
@@ -72,7 +71,7 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
             String action = intent.getAction();
 
             try {
-                if(action.equals(WifiManager.NETWORK_STATE_CHANGED_ACTION)){
+                if (action.equals(WifiManager.NETWORK_STATE_CHANGED_ACTION)) {
                     NetworkInfo info = intent.getParcelableExtra(WifiManager.EXTRA_NETWORK_INFO);
                     NetworkInfo.DetailedState state = info.getDetailedState();
                     Log.d(state.toString(), "STATE");
@@ -112,11 +111,12 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                         | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
                         | View.SYSTEM_UI_FLAG_FULLSCREEN
                         | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
-            );
+        );
 
-        final IntentFilter filters = new IntentFilter();
-        filters.addAction("android.net.wifi.WIFI_STATE_CHANGED");
-        filters.addAction("android.net.wifi.STATE_CHANGE");
+        this.filters = new IntentFilter();
+        this.filters.addAction("android.net.wifi.WIFI_STATE_CHANGED");
+        this.filters.addAction("android.net.wifi.STATE_CHANGE");
+
         this.wiFiStateListener = new WiFiStateListener();
         super.registerReceiver(wiFiStateListener, filters);
 
@@ -160,6 +160,12 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                 }
             }
         });
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        super.registerReceiver(wiFiStateListener, this.filters);
     }
 
     @Override
