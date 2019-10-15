@@ -3,6 +3,9 @@ package com.example.iot_car_rc;
 import android.os.AsyncTask;
 import android.util.Log;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
@@ -19,12 +22,12 @@ class CommandTransmitter {
     private DatagramSocket socket;
     private InetAddress inetAddress;
 
-    private class SendCommandTask extends AsyncTask<COMMAND, Void, Void> {
+    private class SendCommandTask extends AsyncTask<String, Void, Void> {
 
         @Override
-        protected Void doInBackground(COMMAND... commands) {
-            ByteBuffer message = ByteBuffer.allocate(1);
-            message.put(commands[0].getCommandCode()).rewind();
+        protected Void doInBackground(String... strings) {
+            ByteBuffer message = ByteBuffer.allocate(strings[0].getBytes().length);
+            message.put(strings[0].getBytes()).rewind();
             DatagramPacket packet = new DatagramPacket(message.array(), message.limit(), inetAddress, PORT);
 
             try {
@@ -49,7 +52,7 @@ class CommandTransmitter {
         }
     }
 
-    public void setInetAddress(String address) {
+    void setInetAddress(String address) {
         try {
             this.inetAddress = InetAddress.getByName(address);
         } catch (UnknownHostException exception) {
@@ -57,7 +60,24 @@ class CommandTransmitter {
         }
     }
 
-    void sendCommand(COMMAND command) {
-        new SendCommandTask().execute(command);
+    void sendCommand(int leftMotorSpeed, int rightMotorSpeed, int direction, int drivingMode) {
+        String jsonString = preparePacket(leftMotorSpeed, rightMotorSpeed, direction, drivingMode);
+        new SendCommandTask().execute(jsonString);
+    }
+
+    private String preparePacket(int leftMotorSpeed, int rightMotorSpeed, int direction, int drivingMode) {
+        JSONObject json = new JSONObject();
+
+        try {
+            json.put("left_motor_speed", leftMotorSpeed);
+            json.put("right_motor_speed", rightMotorSpeed);
+            json.put("direction", direction);
+            json.put("driving_mode", drivingMode);
+        } catch (JSONException exception) {
+            Log.e(exception.getMessage(), "TRANSMITTER_ERROR:preparePacket");
+        }
+
+        return json.toString();
+
     }
 }
