@@ -15,76 +15,124 @@ import android.util.Log;
 import android.widget.CompoundButton;
 import android.widget.Switch;
 
+import org.json.JSONException;
 
+import java.lang.ref.WeakReference;
+import java.net.SocketException;
+import java.net.UnknownHostException;
+
+/**
+ * Represents MainActivity of the application.
+ *
+ * @author Rafał Dąbrowski
+ */
 public class MainActivity extends AppCompatActivity implements JoystickView.JoystickListener {
-    private CommandTransmitter commandTransmitter;
-    private WifiManager wifiManager;
-    private WifiConfiguration wifiConfiguration;
     private final String SSID = "ESP8266-ACCESS-POINT";
     private final String IP_ADDRESS = "192.168.1.1";
+
+    private WifiManager wifiManager;
+    private WifiConfiguration wifiConfiguration;
     private WiFiStateListener wiFiStateListener;
     private IntentFilter filters;
+
     private Switch controlModeSwitch;
     private JoystickView joystickView;
     private ProgressDialog wifiConnectionProgressDialog;
+
+    private CommandTransmitter commandTransmitter;
+    private DrivingDirection drivingDirection = DrivingDirection.FORWARD;
+    private DrivingMode drivingMode = DrivingMode.REMOTE;
     private int leftMotorSpeed;
     private int rightMotorSpeed;
-    private DrivingDirection drivingDirection;
-    private DrivingMode drivingMode;
 
-    private class WaitForWiFiTask extends AsyncTask<Void, Void, Void> {
+    /**
+     * Represents an AsyncTask used to connect to Wi-Fi.
+     *
+     * @author Rafał Dąbrowski
+     */
+    private static class WaitForWiFiTask extends AsyncTask<Void, Void, Void> {
+        //  Needed to access activity properties
+        //  and prevent memory leakage since the class is static
+        private WeakReference<MainActivity> mainActivityReference;
 
+        /**
+         * A constructor for WaitForWiFiTask
+         *
+         * @param mainActivity a main activity context
+         * @return SendCommandTask instance.
+         */
+        WaitForWiFiTask(MainActivity mainActivity) {
+            this.mainActivityReference = new WeakReference<>(mainActivity);
+        }
+
+        /**
+         * This method is called before executing the task. It shows the Wi-Fi connection dialog.
+         *
+         * @return Nothing.
+         */
         @Override
         protected void onPreExecute() {
             super.onPreExecute();
-            wifiConnectionProgressDialog.show();
+            MainActivity mainActivity = this.mainActivityReference.get();
+            mainActivity.wifiConnectionProgressDialog.show();
         }
 
+        /**
+         * This method tries to connect to Wi-Fi.
+         *
+         * @return Nothing.
+         */
         @Override
         protected Void doInBackground(Void... voids) {
-            try {
-                connectToWifi();
-            } catch (Exception e) {
-                Log.e(e.getMessage(), "WIFI_ERROR");
-            }
+            MainActivity mainActivity = this.mainActivityReference.get();
+            mainActivity.connectToWifi();
 
             return null;
         }
 
+        /**
+         * This method is called after executing the task. It dismisses the Wi-Fi connection dialog.
+         *
+         * @return Nothing.
+         */
+        @Override
         protected void onPostExecute(Void result) {
             super.onPostExecute(result);
-            wifiConnectionProgressDialog.dismiss();
+            MainActivity mainActivity = this.mainActivityReference.get();
+            mainActivity.wifiConnectionProgressDialog.dismiss();
         }
     }
 
+    /**
+     * Represents a Wi-Fi state listener.
+     * It listens for changes in Wi-Fi connections and handles them.
+     *
+     * @author Rafał Dąbrowski
+     */
     public class WiFiStateListener extends BroadcastReceiver {
 
         @Override
         public void onReceive(Context context, Intent intent) {
             String action = intent.getAction();
 
-            try {
-                if (action.equals(WifiManager.NETWORK_STATE_CHANGED_ACTION)) {
-                    NetworkInfo info = intent.getParcelableExtra(WifiManager.EXTRA_NETWORK_INFO);
-                    NetworkInfo.DetailedState state = info.getDetailedState();
+            if (action != null && action.equals(WifiManager.NETWORK_STATE_CHANGED_ACTION)) {
+                NetworkInfo info = intent.getParcelableExtra(WifiManager.EXTRA_NETWORK_INFO);
+                NetworkInfo.DetailedState state = info.getDetailedState();
 
-                    switch (state) {
-                        case SCANNING:
-                            wifiConnectionProgressDialog.setMessage(getString(R.string.scanning_wifi));
-                            break;
-                        case CONNECTING:
-                            wifiConnectionProgressDialog.setMessage(getString(R.string.connecting_to_wifi));
-                            break;
-                        case OBTAINING_IPADDR:
-                            wifiConnectionProgressDialog.setMessage(getString(R.string.obtaining_wifi_ip_address));
-                            break;
-                        case DISCONNECTED:
-                            new WaitForWiFiTask().execute();
-                            break;
-                    }
+                switch (state) {
+                    case SCANNING:
+                        wifiConnectionProgressDialog.setMessage(getString(R.string.scanning_wifi));
+                        break;
+                    case CONNECTING:
+                        wifiConnectionProgressDialog.setMessage(getString(R.string.connecting_to_wifi));
+                        break;
+                    case OBTAINING_IPADDR:
+                        wifiConnectionProgressDialog.setMessage(getString(R.string.obtaining_wifi_ip_address));
+                        break;
+                    case DISCONNECTED:
+                        new WaitForWiFiTask((MainActivity) context).execute();
+                        break;
                 }
-            } catch (NullPointerException exception) {
-                Log.e(exception.getMessage(), "WIFI_ERROR:WiFiStateListener");
             }
         }
     }
@@ -96,54 +144,94 @@ public class MainActivity extends AppCompatActivity implements JoystickView.Joys
 
         this.joystickView = (JoystickView) findViewById(R.id.joystickView);
 
+        //  Set broadcast receiver filters
         this.filters = new IntentFilter();
         this.filters.addAction("android.net.wifi.WIFI_STATE_CHANGED");
         this.filters.addAction("android.net.wifi.STATE_CHANGE");
 
+        //  Register Wi-Fi listener
         this.wiFiStateListener = new WiFiStateListener();
         super.registerReceiver(wiFiStateListener, filters);
 
-        this.wifiConnectionProgressDialog = new ProgressDialog(this);
+        //  Configure Wi-Fi connection progress dialog
+        this.wifiConnectionProgressDialog = new ProgressDialog(this, R.style.progressDialogTheme);
         this.wifiConnectionProgressDialog.setMessage(getString(R.string.connecting_to_wifi));
         this.wifiConnectionProgressDialog.setCancelable(false);
         this.wifiConnectionProgressDialog.setInverseBackgroundForced(false);
 
+        //  Configure Wi-Fi connection parameters
         this.wifiManager = (WifiManager) getSystemService(Context.WIFI_SERVICE);
         this.wifiConfiguration = new WifiConfiguration();
         this.wifiConfiguration.SSID = String.format("\"%s\"", SSID);
         this.wifiConfiguration.allowedKeyManagement.set(WifiConfiguration.KeyMgmt.NONE);
 
-        new WaitForWiFiTask().execute();
+        //  Try connecting to Wi-Fi
+        new WaitForWiFiTask(this).execute();
 
-        this.commandTransmitter = CommandTransmitter.getInstance();
-        this.commandTransmitter.setInetAddress(this.IP_ADDRESS);
+        //  Get command transmitter instance and set IP Address
+        try {
+            this.commandTransmitter = CommandTransmitter.getInstance();
+        } catch (SocketException exception) {
+            Log.e(exception.getMessage(), "TRANSMITTER_ERROR:getInstance");
+        }
+
+        //  Set the IP Address
+        try {
+            this.commandTransmitter.setInetAddress(this.IP_ADDRESS);
+        } catch (UnknownHostException exception) {
+            Log.e(exception.getMessage(), "TRANSMITTER_ERROR:setInetAddress");
+        }
 
         controlModeSwitch = (Switch) findViewById(R.id.control_mode_switch);
 
+        //  Set up on checked listener for control mode switch
         controlModeSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 if (isChecked) {
                     controlModeSwitch.setText(R.string.control_mode_switch_text_off);
                     drivingMode = DrivingMode.AUTONOMOUS;
-                    commandTransmitter.sendCommand(leftMotorSpeed, rightMotorSpeed, drivingDirection.getDrivingDirection(), drivingMode.getDrivingMode());
                     disableJoystick();
                 } else {
                     controlModeSwitch.setText(R.string.control_mode_switch_text_on);
                     drivingMode = DrivingMode.REMOTE;
-                    commandTransmitter.sendCommand(leftMotorSpeed, rightMotorSpeed, drivingDirection.getDrivingDirection(), drivingMode.getDrivingMode());
                     enableJoystick();
+                }
+
+                try {
+                    commandTransmitter.sendCommand(
+                            leftMotorSpeed,
+                            rightMotorSpeed,
+                            drivingDirection.getDrivingDirection(),
+                            drivingMode.getDrivingMode()
+                    );
+                } catch (JSONException exception) {
+                    Log.e(exception.getMessage(), "TRANSMITTER_ERROR:sendCommand");
                 }
             }
         });
     }
 
+    /**
+     * This is an indicator that the activity became active and ready to receive input.
+     * It's called after onPause(). It registers the broadcast receiver.
+     *
+     * @return Nothing.
+     */
     @Override
     protected void onResume() {
         super.onResume();
+
         super.registerReceiver(wiFiStateListener, this.filters);
     }
 
+    /**
+     * This method is called as part of the activity lifecycle when the user no longer
+     * actively interacts with the activity, but it is still visible on screen.
+     * It dismisses the Wi-Fi connection dialog and unregisters the broadcast receiver.
+     *
+     * @return Nothing.
+     */
     @Override
     protected void onPause() {
         super.onPause();
@@ -152,8 +240,17 @@ public class MainActivity extends AppCompatActivity implements JoystickView.Joys
         unregisterReceiver(this.wiFiStateListener);
     }
 
+    /**
+     * This method handles joystick movement event.
+     *
+     * @param xOffset the offset of the joystick knob in the X axis, ranges between <0, 100>.
+     * @param yOffset the offset of the joystick knob in the Y axis, ranges between <0, 100>.
+     * @return Nothing.
+     * @throws JSONException if parameters are of the wrong type
+     * @see JSONException
+     */
     @Override
-    public void onJoystickMoved(int xOffset, int yOffset) {
+    public void onJoystickMoved(int xOffset, int yOffset) throws JSONException {
         int speed;
         int speedOffset;
 
@@ -177,31 +274,58 @@ public class MainActivity extends AppCompatActivity implements JoystickView.Joys
             this.rightMotorSpeed = constrainSpeedValue(Math.abs(speed) - speedOffset, 255);
         }
 
-        this.commandTransmitter.sendCommand(this.leftMotorSpeed, this.rightMotorSpeed, this.drivingDirection.getDrivingDirection(), 1);
+        this.commandTransmitter.sendCommand(
+                this.leftMotorSpeed,
+                this.rightMotorSpeed,
+                this.drivingDirection.getDrivingDirection(),
+                this.drivingMode.getDrivingMode()
+        );
     }
 
+    /**
+     * This method connects to Wi-Fi.
+     *
+     * @return Nothing.
+     */
     private void connectToWifi() {
-        try {
-            while (!wifiManager.isWifiEnabled()) ;
+        //  Wait until Wi-Fi is enabled
+        while (!wifiManager.isWifiEnabled()) ;
 
-            int networkID = wifiManager.addNetwork(wifiConfiguration);
+        //  Get the network ID
+        int networkID = wifiManager.addNetwork(wifiConfiguration);
 
-            wifiManager.enableNetwork(networkID, true);
-            wifiManager.reconnect();
+        //  Try to connect
+        wifiManager.enableNetwork(networkID, true);
+        wifiManager.reconnect();
 
-            while (wifiManager.getConnectionInfo().getNetworkId() == -1) ;
-        } catch (Exception e) {
-            Log.e(e.getMessage(), "WIFI_ERROR");
-        }
+        //  Wait until connection is established
+        while (wifiManager.getConnectionInfo().getNetworkId() == -1) ;
     }
 
-    private int map(int input, int input_start, int input_end, int output_start, int output_end) {
-        int input_range = input_end - input_start;
-        int output_range = output_end - output_start;
+    /**
+     * This method maps the value between range.
+     *
+     * @param input       the value to be mapped.
+     * @param inputStart  the minimum value of input.
+     * @param inputEnd    the maximum value of input.
+     * @param outputStart the minimum value of output.
+     * @param outputEnd   the maximum value of output.
+     * @return A mapped value between outputStart and outputEnd.
+     */
+    private int map(int input, int inputStart, int inputEnd, int outputStart, int outputEnd) {
+        int inputRange = inputEnd - inputStart;
+        int outputRange = outputEnd - outputStart;
 
-        return (input - input_start) * output_range / input_range + output_start;
+        return (input - inputStart) * outputRange / inputRange + outputStart;
     }
 
+    /**
+     * This method constrains speed between 0 and maxSpeedValue
+     *
+     * @param speed         The value of speed.
+     * @param maxSpeedValue The maximum value of speed.
+     * @return Constrained value of speed.
+     */
     private int constrainSpeedValue(int speed, int maxSpeedValue) {
         if (speed > maxSpeedValue) {
             return maxSpeedValue;
@@ -214,10 +338,20 @@ public class MainActivity extends AppCompatActivity implements JoystickView.Joys
         return speed;
     }
 
+    /**
+     * This method disables joystick control.
+     *
+     * @return Nothing.
+     */
     private void disableJoystick() {
         this.joystickView.disableJoystick();
     }
 
+    /**
+     * This method enables joystick control.
+     *
+     * @return Nothing.
+     */
     private void enableJoystick() {
         this.joystickView.enableJoystick();
     }
