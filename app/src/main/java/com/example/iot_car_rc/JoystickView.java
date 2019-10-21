@@ -96,13 +96,15 @@ public class JoystickView extends SurfaceView implements SurfaceHolder.Callback,
 
     /**
      * Handler of surfaceCreated event.
-     * It calls {@link com.example.iot_car_rc.JoystickView#setupDimensions} method.
+     * It calls {@link com.example.iot_car_rc.JoystickView#setupDimensions()}
+     * and {@link com.example.iot_car_rc.JoystickView#drawJoystick(float, float)} methods.
      *
      * @param holder The SurfaceHolder whose surface is being created.
      */
     @Override
     public void surfaceCreated(SurfaceHolder holder) {
         this.setupDimensions();
+        drawJoystick(centerX, centerY);
     }
 
     /**

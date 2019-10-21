@@ -5,6 +5,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.pm.ActivityInfo;
 import android.net.NetworkInfo;
 import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiManager;
@@ -143,6 +144,9 @@ public class MainActivity extends AppCompatActivity implements JoystickView.Joys
         setContentView(R.layout.activity_main);
 
         this.joystickView = (JoystickView) findViewById(R.id.joystickView);
+
+        //  Lock the screen orientation
+        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LOCKED);
 
         //  Set broadcast receiver filters
         this.filters = new IntentFilter();
