@@ -1,9 +1,8 @@
 # Android app for remote controlled car with obstacle avoidance feature
-___
 ## Scanning for network
-![Alt text](/images/scanning_for_network.png?raw=true)
+<img src="/images/scanning_for_network.png?raw=true" width="50%" height="50%">
 ___
 ## Joystick
-![Alt text](/images/joystick_view.png?raw=true)
+<img src="/images/joystick_view.png?raw=true" width="50%" height="50%">
 ___
-![Alt text](/images/joystick_moved.png?raw=true)
+<img src="/images/joystick_moved.png?raw=true" width="50%" height="50%">
