@@ -2,6 +2,7 @@
 ## Scanning for network
 <img src="/images/scanning_for_network.png?raw=true" width="50%" height="50%">
 ___
+
 ## Joystick
 <img src="/images/joystick_view.png?raw=true" width="50%" height="50%">
 ___
