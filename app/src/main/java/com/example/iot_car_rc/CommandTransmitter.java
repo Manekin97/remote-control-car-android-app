@@ -120,17 +120,24 @@ class CommandTransmitter {
     /**
      * This method sends the command to the remote car.
      *
-     * @param leftMotorSpeed  The speed of the left motor, ranges from <0, 255>.
-     * @param rightMotorSpeed The speed of the right motor, ranges from <0, 255>.
-     * @param direction       The driving direction of the car (0 is backward, 1 is forward).
-     * @param drivingMode     The driving mode of the car (0 is remote, 1 is autonomous).
+     * @param leftMotorSpeed   The speed of the left motor, ranges from <0, 255>.
+     * @param rightMotorSpeed  The speed of the right motor, ranges from <0, 255>.
+     * @param direction        The driving direction of the car (0 is backward, 1 is forward).
+     * @param drivingMode      The driving mode of the car (0 is remote, 1 is autonomous).
+     * @param drivingAlgorithm The algorithm used to drive the car.
      * @return Nothing.
      * @throws JSONException if parameters are of the wrong type
      * @see JSONException
      */
-    void sendCommand(int leftMotorSpeed, int rightMotorSpeed, int direction, int drivingMode) throws JSONException {
+    void sendCommand(int leftMotorSpeed, int rightMotorSpeed,
+                     int direction, int drivingMode, int drivingAlgorithm) throws JSONException {
         //  Prepare a stringified json object
-        String jsonString = preparePacket(leftMotorSpeed, rightMotorSpeed, direction, drivingMode);
+        String jsonString = preparePacket(leftMotorSpeed,
+                rightMotorSpeed,
+                direction,
+                drivingMode,
+                drivingAlgorithm
+        );
 
         //  Send the packet
         new SendCommandTask(this).execute(jsonString);
@@ -140,17 +147,18 @@ class CommandTransmitter {
      * This method creates a JSON object containing the speed, direction
      * and driving mode of the remote car
      *
-     * @param leftMotorSpeed  The speed of the left motor, ranges from <0, 255>.
-     * @param rightMotorSpeed The speed of the right motor, ranges from <0, 255>.
-     * @param direction       The driving direction of the car (0 is backward, 1 is forward).
-     * @param drivingMode     The driving mode of the car (0 is remote, 1 is autonomous).
+     * @param leftMotorSpeed   The speed of the left motor, ranges from <0, 255>.
+     * @param rightMotorSpeed  The speed of the right motor, ranges from <0, 255>.
+     * @param direction        The driving direction of the car (0 is backward, 1 is forward).
+     * @param drivingMode      The driving mode of the car (0 is remote, 1 is autonomous).
+     * @param drivingAlgorithm The algorithm used to drive the car.
      * @return Stringified JSON object.
      * @throws JSONException if parameters are of the wrong type
      * @see JSONException
      */
     private String preparePacket(
             int leftMotorSpeed, int rightMotorSpeed,
-            int direction, int drivingMode) throws JSONException {
+            int direction, int drivingMode, int drivingAlgorithm) throws JSONException {
 
         JSONObject json = new JSONObject();
 
@@ -158,6 +166,7 @@ class CommandTransmitter {
         json.put("right_motor_speed", rightMotorSpeed);
         json.put("direction", direction);
         json.put("driving_mode", drivingMode);
+        json.put("driving_algorithm", drivingAlgorithm);
 
         return json.toString();
     }

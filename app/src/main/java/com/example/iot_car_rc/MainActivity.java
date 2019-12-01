@@ -13,7 +13,10 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
-import android.widget.CompoundButton;
+import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
+import android.widget.Spinner;
 import android.widget.Switch;
 
 import org.json.JSONException;
@@ -37,12 +40,14 @@ public class MainActivity extends AppCompatActivity implements JoystickView.Joys
     private IntentFilter filters;
 
     private Switch controlModeSwitch;
+    private Spinner algorithmSpinner;
     private JoystickView joystickView;
     private ProgressDialog wifiConnectionProgressDialog;
 
     private CommandTransmitter commandTransmitter;
     private DrivingDirection drivingDirection = DrivingDirection.FORWARD;
     private DrivingMode drivingMode = DrivingMode.REMOTE;
+    private DrivingAlgorithm drivingAlgorithm = DrivingAlgorithm.SIMPLE;
     private int leftMotorSpeed;
     private int rightMotorSpeed;
 
@@ -187,31 +192,54 @@ public class MainActivity extends AppCompatActivity implements JoystickView.Joys
         }
 
         controlModeSwitch = (Switch) findViewById(R.id.control_mode_switch);
+        algorithmSpinner = (Spinner) findViewById(R.id.algorithm_spinner);
+
+        //  Create an adapter for spinner view
+        ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(
+                this,
+                R.array.algorithms_entries,
+                R.layout.spinner_item
+        );
+        //  Set the spinner view resource
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        //  Set the adapter
+        algorithmSpinner.setAdapter(adapter);
+
+        //  Set up on item selected listener for algorithm spinner
+        algorithmSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                drivingAlgorithm = stringToDrivingAlgorithm((String) parent.getSelectedItem());
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+                drivingAlgorithm = stringToDrivingAlgorithm((String) parent.getItemAtPosition(0));
+            }
+        });
 
         //  Set up on checked listener for control mode switch
-        controlModeSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-            @Override
-            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                if (isChecked) {
-                    controlModeSwitch.setText(R.string.control_mode_switch_text_off);
-                    drivingMode = DrivingMode.AUTONOMOUS;
-                    disableJoystick();
-                } else {
-                    controlModeSwitch.setText(R.string.control_mode_switch_text_on);
-                    drivingMode = DrivingMode.REMOTE;
-                    enableJoystick();
-                }
+        controlModeSwitch.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            if (isChecked) {
+                controlModeSwitch.setText(R.string.control_mode_switch_text_off);
+                drivingMode = DrivingMode.AUTONOMOUS;
+                disableJoystick();
+            } else {
+                controlModeSwitch.setText(R.string.control_mode_switch_text_on);
+                drivingMode = DrivingMode.REMOTE;
+                enableJoystick();
+            }
 
-                try {
-                    commandTransmitter.sendCommand(
-                            leftMotorSpeed,
-                            rightMotorSpeed,
-                            drivingDirection.getDrivingDirection(),
-                            drivingMode.getDrivingMode()
-                    );
-                } catch (JSONException exception) {
-                    Log.e(exception.getMessage(), "TRANSMITTER_ERROR:sendCommand");
-                }
+            try {
+                commandTransmitter.sendCommand(
+                        leftMotorSpeed,
+                        rightMotorSpeed,
+                        drivingDirection.getDrivingDirection(),
+                        drivingMode.getDrivingMode(),
+                        drivingAlgorithm.getDrivingAlgorithm()
+                );
+            } catch (JSONException exception) {
+                Log.e(exception.getMessage(), "TRANSMITTER_ERROR:sendCommand");
             }
         });
     }
@@ -282,7 +310,8 @@ public class MainActivity extends AppCompatActivity implements JoystickView.Joys
                 this.leftMotorSpeed,
                 this.rightMotorSpeed,
                 this.drivingDirection.getDrivingDirection(),
-                this.drivingMode.getDrivingMode()
+                this.drivingMode.getDrivingMode(),
+                this.drivingAlgorithm.getDrivingAlgorithm()
         );
     }
 
@@ -358,5 +387,18 @@ public class MainActivity extends AppCompatActivity implements JoystickView.Joys
      */
     private void enableJoystick() {
         this.joystickView.enableJoystick();
+    }
+
+    private DrivingAlgorithm stringToDrivingAlgorithm(String string) {
+        switch (string.toUpperCase()){
+            case "SIMPLE ALGORITHM":
+                return DrivingAlgorithm.SIMPLE;
+            case "ADVANCED ALGORITHM":
+                return DrivingAlgorithm.ADVANCED;
+            case "COMPLEX ALGORITHM":
+                return DrivingAlgorithm.COMPLEX;
+            default:
+                return null;
+        }
     }
 }

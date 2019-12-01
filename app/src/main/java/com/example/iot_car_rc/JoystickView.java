@@ -132,7 +132,7 @@ public class JoystickView extends SurfaceView implements SurfaceHolder.Callback,
     }
 
     /**
-     * This method check if the screen was touched close to the joystick base.
+     * This method checks if the screen was touched close to the joystick base.
      *
      * @param x the x coordinate of the touch event.
      * @param y the y coordinate of the touch event.
@@ -212,7 +212,7 @@ public class JoystickView extends SurfaceView implements SurfaceHolder.Callback,
     }
 
     /**
-     * This method enables the joystick.
+     * This method draws the joystick.
      *
      * @param newX new X coordinate at which the joystick will be drawn.
      * @param newY new Y coordinate at which the joystick will be drawn.

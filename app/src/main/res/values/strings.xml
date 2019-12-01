@@ -5,4 +5,12 @@
     <string name="scanning_wifi">Scanning for Wi-Fi network…</string>
     <string name="connecting_to_wifi">Connecting to Wi-Fi…</string>
     <string name="obtaining_wifi_ip_address">Obtaining IP Address…</string>
+    <string name="algorithm_spinner_label">Select AI algorithm: </string>
+
+    <string-array name="algorithms_entries">
+        <item>Simple Algorithm</item>
+        <item>Advanced Algorithm</item>
+        <item>Complex Algorithm</item>
+    </string-array>
+
 </resources>
